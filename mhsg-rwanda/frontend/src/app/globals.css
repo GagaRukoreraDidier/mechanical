@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #23A6BD;
+  --accent-ink: #1a6c80;
+  --accent-tint: #eefbfc;
+  --ink: #010313;
+  --canvas: #f5f6f8;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
