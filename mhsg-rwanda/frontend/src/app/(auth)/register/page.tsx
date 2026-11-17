@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import api from "@/lib/api"
-import { Wrench, Car, Cog, Hammer, Home, UserCheck, ArrowRight, Loader2 } from "lucide-react"
+import { Wrench, Car, Cog, Home, UserCheck, ArrowRight, Loader2, Phone, CreditCard, ShieldCheck } from "lucide-react"
 
 const ROLES = [
   { id: "CUSTOMER", title: "Customer / Requester", icon: UserCheck, desc: "Request mechanical repairs, parts, or home technicians" },
@@ -18,20 +18,19 @@ export default function RegisterPage() {
   const router = useRouter()
   const [role, setRole] = useState("CUSTOMER")
   const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
+  const [nationalId, setNationalId] = useState("")
   const [phone, setPhone] = useState("+250")
-  const [language, setLanguage] = useState("en")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [passwordConfirm, setPasswordConfirm] = useState("")
-  const [phoneConsent, setPhoneConsent] = useState(true)
-  const [addressConsent, setAddressConsent] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password !== passwordConfirm) {
-      setError("Passwords do not match.")
+
+    if (!phone || phone === "+250") {
+      setError("Please provide a valid Rwandan telephone number.")
       return
     }
 
@@ -40,37 +39,21 @@ export default function RegisterPage() {
 
     try {
       await api.post("/auth/register/", {
-        email,
         full_name: fullName,
+        national_id: nationalId || undefined,
         phone,
+        email: email || undefined,
         role,
-        preferred_language: language,
-        phone_consent: phoneConsent,
-        address_consent: addressConsent,
-        password,
-        password_confirm: passwordConfirm,
+        password: password || nationalId || phone || "123456",
       })
 
-      // Redirect to login with success hint
-      router.push(`/login?registered=true&email=${encodeURIComponent(email)}`)
+      setSuccess(true)
+      setTimeout(() => {
+        router.push(`/login?registered=true&identifier=${encodeURIComponent(phone || nationalId)}`)
+      }, 1200)
     } catch (err: any) {
-      if (err.response?.data?.email || err.response?.data?.password) {
-        const msg =
-          err.response?.data?.email?.[0] ||
-          err.response?.data?.password?.[0] ||
-          "Registration failed. Please check your details."
-        setError(msg)
-        setLoading(false)
-      } else {
-        // Fallback for development / offline backend
-        if (typeof window !== "undefined") {
-          localStorage.setItem(
-            "demo_registered_user",
-            JSON.stringify({ email, fullName, role, phone })
-          )
-        }
-        router.push(`/login?registered=true&email=${encodeURIComponent(email)}`)
-      }
+      setError(err?.response?.data?.error || "Registration failed. Please check your details.")
+      setLoading(false)
     }
   }
 
@@ -84,7 +67,7 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-[24px] font-bold text-[#010313]">Join MHSG Rwanda</h1>
           <p className="mt-1 text-[13px] text-[#6b7280]">
-            An Initiative of <strong className="text-[#010313]">FIX-IT-FAST CO. Ltd</strong> (Owner) & <strong className="text-[#010313]">GAMU</strong>
+            An Initiative of <strong className="text-[#010313]">FIX-IT-FAST CO. Ltd</strong> (Owner) &amp; <strong className="text-[#010313]">GAMU</strong>
           </p>
         </div>
 
@@ -95,41 +78,44 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {success && (
+            <div className="mb-6 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-[13px] text-emerald-800 flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+              <span>Account created successfully! Redirecting you to login...</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Step 1: Select Role */}
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wide text-[#9ca3af] mb-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-[#6b7280] mb-2">
                 1. Select Account Type
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {ROLES.map((r) => {
                   const Icon = r.icon
-                  const active = role === r.id
+                  const selected = role === r.id
                   return (
                     <button
-                      type="button"
                       key={r.id}
+                      type="button"
                       onClick={() => setRole(r.id)}
-                      className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
-                        active
+                      className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        selected
                           ? "border-[#23A6BD] bg-[#eefbfc] ring-2 ring-[#23A6BD]/20"
-                          : "border-[#e5e7eb] bg-white hover:border-[#23A6BD]/40"
+                          : "border-[#ececf0] bg-white hover:border-[#cbd5e1]"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                            active ? "bg-[#23A6BD] text-[#010313]" : "bg-[#f3f4f6] text-[#6b7280]"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <div>
-                          <div className={`text-[13px] font-semibold ${active ? "text-[#010313]" : "text-[#4b5563]"}`}>
-                            {r.title}
-                          </div>
-                          <div className="text-[11px] text-[#6b7280] line-clamp-1">{r.desc}</div>
-                        </div>
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                          selected ? "bg-[#23A6BD] text-[#010313]" : "bg-[#f1f5f9] text-[#64748b]"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="block text-[13px] font-bold text-[#010313]">{r.title}</span>
+                        <span className="block text-[11px] text-[#6b7280] leading-snug">{r.desc}</span>
                       </div>
                     </button>
                   )
@@ -137,130 +123,102 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Step 2: Contact Details */}
+            {/* Step 2: Identification Details */}
             <div className="pt-4 border-t border-[#f1f5f9]">
-              <label className="block text-[11px] font-bold uppercase tracking-wide text-[#9ca3af] mb-3">
-                2. Account & Contact Information
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-[#6b7280] mb-3">
+                2. User Identification &amp; Credentials
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#6b7280] mb-1">Full Name / Business Name</label>
+                  <label className="block text-[12px] font-semibold text-[#374151] mb-1">
+                    Full Name or Business Workshop Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Kigali Autocare Ltd or Jean Bosco"
-                    className="w-full rounded-lg border border-[#e5e7eb] px-3 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15"
+                    placeholder="e.g. Mugisha Jean-Luc or Kigali Express Garage"
+                    className="w-full rounded-lg border border-[#e5e7eb] px-3.5 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15 transition-all"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-[#6b7280] mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full rounded-lg border border-[#e5e7eb] px-3 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#374151] mb-1 flex items-center justify-between">
+                      <span>Rwandan National ID (16 Digits)</span>
+                      <CreditCard className="h-3.5 w-3.5 text-[#23A6BD]" />
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={16}
+                      value={nationalId}
+                      onChange={(e) => setNationalId(e.target.value)}
+                      placeholder="1 199X 8 00XXXXX X XX"
+                      className="w-full rounded-lg border border-[#e5e7eb] px-3.5 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15 transition-all font-mono"
+                    />
+                    <span className="block text-[10px] text-[#9ca3af] mt-0.5">
+                      Can be used as your username &amp; password
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#374151] mb-1 flex items-center justify-between">
+                      <span>Telephone Number (MTN / Airtel) *</span>
+                      <Phone className="h-3.5 w-3.5 text-[#23A6BD]" />
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+250 788 123 456"
+                      className="w-full rounded-lg border border-[#e5e7eb] px-3.5 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15 transition-all"
+                    />
+                    <span className="block text-[10px] text-[#9ca3af] mt-0.5">
+                      Can be used as your username
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-[#6b7280] mb-1">Phone Number (Rwanda)</label>
-                  <input
-                    type="text"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+250788123456"
-                    className="w-full rounded-lg border border-[#e5e7eb] px-3 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#374151] mb-1">
+                      Email Address (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com (optional)"
+                      className="w-full rounded-lg border border-[#e5e7eb] px-3.5 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15 transition-all"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-[#6b7280] mb-1">Preferred Language</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full rounded-lg border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none"
-                  >
-                    <option value="en">English</option>
-                    <option value="rw">Kinyarwanda</option>
-                    <option value="fr">Français</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: Password */}
-            <div className="pt-4 border-t border-[#f1f5f9]">
-              <label className="block text-[11px] font-bold uppercase tracking-wide text-[#9ca3af] mb-3">
-                3. Security
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#6b7280] mb-1">Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 8 characters"
-                    className="w-full rounded-lg border border-[#e5e7eb] px-3 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#6b7280] mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
-                    placeholder="Re-type password"
-                    className="w-full rounded-lg border border-[#e5e7eb] px-3 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Consent Notice */}
-            <div className="pt-4 border-t border-[#f1f5f9]">
-              <div className="rounded-xl bg-[#fafbfc] border border-[#f1f5f9] p-4 text-[12px] text-[#6b7280] space-y-2">
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    id="phoneConsent"
-                    checked={phoneConsent}
-                    onChange={(e) => setPhoneConsent(e.target.checked)}
-                    className="mt-0.5 rounded text-[#23A6BD] focus:ring-[#23A6BD]"
-                  />
-                  <label htmlFor="phoneConsent" className="text-[12px] text-[#010313]">
-                    I consent to sharing my phone number with my approved provider upon verified connection unlock.
-                  </label>
-                </div>
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    id="addressConsent"
-                    checked={addressConsent}
-                    onChange={(e) => setAddressConsent(e.target.checked)}
-                    className="mt-0.5 rounded text-[#23A6BD] focus:ring-[#23A6BD]"
-                  />
-                  <label htmlFor="addressConsent" className="text-[12px] text-[#010313]">
-                    I consent to sharing my service location with my approved provider for on-site execution.
-                  </label>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#374151] mb-1">
+                      Password (Optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Leave blank to use National ID / Phone"
+                      className="w-full rounded-lg border border-[#e5e7eb] px-3.5 py-2 text-[13px] text-[#010313] focus:border-[#23A6BD] focus:outline-none focus:ring-2 focus:ring-[#23A6BD]/15 transition-all"
+                    />
+                    <span className="block text-[10px] text-[#9ca3af] mt-0.5">
+                      If blank, defaults to your ID or Phone Number
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-[#23A6BD] bg-[#23A6BD] px-4 py-2.5 text-[13px] font-bold text-[#010313] hover:bg-[#1a879c] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
+              disabled={loading || success}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-[#23A6BD] bg-[#23A6BD] px-4 py-3 text-[14px] font-bold text-[#010313] hover:border-[#1a879c] hover:bg-[#1a879c] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -269,7 +227,7 @@ export default function RegisterPage() {
                 </>
               ) : (
                 <>
-                  Complete Registration
+                  Complete Registration &amp; Enter Portal
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -277,18 +235,11 @@ export default function RegisterPage() {
           </form>
 
           <div className="mt-6 text-center text-[12px] text-[#6b7280]">
-            Already registered?{" "}
+            Already have an account?{" "}
             <Link href="/login" className="font-semibold text-[#1a6c80] hover:underline">
-              Sign in instead
+              Sign in with Telephone or National ID
             </Link>
           </div>
-        </div>
-
-        <div className="mt-6 text-center text-[11px] text-[#9ca3af]">
-          <p>
-            Owned &amp; Operated by <span className="font-semibold text-[#010313]">FIX-IT-FAST CO. Ltd</span> (Owner) · In Partnership with <span className="font-semibold text-[#010313]">GAMU</span>
-          </p>
-          <p className="mt-0.5">Kigali, Rwanda · All Rights Reserved &copy; 2026</p>
         </div>
       </div>
     </div>

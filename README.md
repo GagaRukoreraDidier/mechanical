@@ -7,95 +7,68 @@
 
 ---
 
-## 1. Overview & Platform Blueprint
+## 1. Overview & Architecture
 
-**MHSG Rwanda** is a centrally coordinated demand and discovery marketplace tailored to Rwanda's automotive and home-services economy. MHSG is strictly an intermediary and coordinator — **not** an inventory owner, repair shop, or logistics operator.
+**MHSG Rwanda** is a centrally coordinated marketplace application connecting vehicle owners and households with verified garages, mobile mechanics, spare parts sellers, and home service technicians across Rwanda.
 
-### Core Operating Principles:
-1. **Centrally Moderated Requests**: Customers submit detailed requests with approximate location (province/district/sector). Administrator reviews, moderates, and publishes to verified local providers.
-2. **Competitive Quotations**: Providers submit formal offers detailing price ranges (RWF), turnaround times, and warranty terms.
-3. **Multi-Factor Recommendation Algorithm**: Ranks providers by Capability (25%), Distance/Locality (20%), Availability (15%), Verification (15%), Price (10%), Rating (10%), and Reliability (5%).
-4. **Privacy-Preserving Contact Unlocking**: Customer exact contact information (phone number, gate/access directions, exact map pin) remains hidden until customer approval and connection fee payment verification.
-5. **Direct Arrangement**: Once unlocked, customer and provider conclude workmanship, delivery, and payment directly.
-
----
-
-## 2. Tech Stack & Architecture
-
-- **Backend**: Python 3.12+ / Django 5.x, Django REST Framework, Celery, JWT Authentication, Swagger/OpenAPI documentation.
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, NextAuth.js.
-- **Design System**: Built according to `skills/frontend-design/SKILL.md`:
-  - Primary Midnight Black: `#010313`
-  - Accent Chrysocolla Blue: `#23A6BD`
-  - Typography: Poppins (`@fontsource/poppins`)
-  - Clean cards, accessible badges, high-contrast states.
+### Key Highlights:
+- **Standalone Embedded Native Database**: Powered by native SQLite (`DatabaseSync`), requiring **no separate backend, no Django, and no database daemon**. The full stack runs self-contained as a unified application.
+- **National ID & Telephone Authentication**:
+  - Registered users can log in using their **Telephone Number** (e.g. `0788220220`) or **Rwandan National ID Number** (16 digits) as their username.
+  - Users can enter their **National ID** or **Telephone Number** as both username and password at the same time to log in immediately.
+  - Simple passwords like `123456` and `1234` are also accepted for convenience.
+- **Main Platform Administrator**:
+  - Email / Username: `admin@mhsg.rw` (or `admin`)
+  - Password: `Admin@Rwanda2026` (also accepts `admin123` / `123456`)
+- **Branding**: Owned and operated by **FIX-IT-FAST CO. Ltd** in strategic partnership with **GAMU**.
 
 ---
 
-## 3. Demo Accounts & Pre-Seeded Credentials
+## 2. Pre-Seeded Accounts (Instant Testing)
 
-The database comes pre-seeded with rich demo data across all modules (Garages, Mechanics, Spare-Parts Sellers, Home Techs, Emergency Roadside, Service Requests, Quotes, Unlocked Connections, Escrow Payments, and Reviews):
+The native database automatically seeds demo accounts, categories, and service requests across Kigali and Rwanda:
 
-| Role | Email | Password | Description |
+| Role | Username (Telephone / National ID / Email) | Password (Fast Access) | Full Name / Description |
 |---|---|---|---|
-| **Super Admin** | `admin@mhsg.rw` | `Admin@Rwanda2026` | FIX-IT-FAST & GAMU Executive Platform Control |
-| **Customer** | `customer@demo.rw` | `Demo@2026` | Jean-Luc Mugisha (Gasabo, Kigali) |
-| **Garage** | `garage@demo.rw` | `Garage@2026` | Kigali Auto Works Ltd (Gikondo Industrial) |
-| **Mechanic** | `mechanic@demo.rw` | `Mechanic@2026` | Eric Niyonzima Mobile Mechanics |
-| **Spare Parts Seller** | `seller@demo.rw` | `Seller@2026` | QuickFix Auto Spares Rwanda |
-| **Home Technician** | `tech@demo.rw` | `Tech@2026` | Patrick Habimana (Smart Solar & Home Power) |
+| **Main Admin** | `admin@mhsg.rw` (or `admin`) | `Admin@Rwanda2026` | FIX-IT-FAST Platform Admin |
+| **Customer** | `0788220220` or `1199580011223344` | Same as Phone / ID or `1234` | Jean-Luc Mugisha (Gasabo) |
+| **Garage** | `0788330330` or `1198880022334455` | Same as Phone / ID or `1234` | Kigali Auto Works Ltd (Gikondo) |
+| **Mechanic** | `0788440440` or `1199280033445566` | Same as Phone / ID or `1234` | Eric Niyonzima Mobile Mechanics |
+| **Spare Parts** | `0788550550` or `1198580044556677` | Same as Phone / ID or `1234` | QuickFix Auto Spares (Muhima) |
+| **Home Tech** | `0788660660` or `1199080055667788` | Same as Phone / ID or `1234` | Patrick Habimana (Smart Solar) |
 
-*Quick-fill test buttons are also available directly on the `/login` page.*
+*The login page at `/login` also features 1-click credential buttons for immediate testing.*
 
 ---
 
-## 4. Quick Start & Execution
+## 3. How to Run the Application Immediately
 
-### Option A: Using the Convenience Launch Scripts (Windows)
-Inside `mhsg-rwanda/`:
-- Double click or run `start-backend.bat` to launch Django backend on `http://localhost:8000`.
-- Double click or run `start-frontend.bat` to launch Next.js frontend on `http://localhost:3000`.
-
-### Option B: Manual Setup
-
-#### 1. Backend
-```bash
-cd mhsg-rwanda/backend
-python -m venv venv
-venv\Scripts\activate   # On Linux/macOS: source venv/bin/activate
-pip install -r requirements/base.txt
-python manage.py migrate
-python manage.py seed_mhsg_data
-python manage.py runserver 127.0.0.1:8000
+### 1-Click Startup (Windows)
+Double-click `start-app.bat` at the root of the project:
+```bat
+start-app.bat
 ```
-- Swagger API Docs: `http://localhost:8000/api/v1/schema/swagger/`
-- Django Admin: `http://localhost:8000/admin/`
+This starts the full-stack server on:
+👉 **[http://localhost:3000](http://localhost:3000)**
 
-#### 2. Frontend
+### Manual Startup
 ```bash
 cd mhsg-rwanda/frontend
 npm install
 npm run dev
 ```
-- Web Application: `http://localhost:3000`
 
 ---
 
-## 5. Repository Structure
-```
-MHSG-RWANDA/
-├── README.md                                          # Platform documentation & quickstart
-├── MHSG_Rwanda_Product_and_Python_Implementation_Guide.docx # Official product specifications
-├── skills/                                            # Design & customization specifications
-└── mhsg-rwanda/
-    ├── backend/                                       # Django REST Framework application
-    ├── frontend/                                      # Next.js App Router full-stack client
-    ├── docker-compose.yml                             # Container orchestration
-    ├── start-backend.bat                              # One-click backend launcher
-    └── start-frontend.bat                             # One-click frontend launcher
-```
+## 4. Platform Modules
+1. **Demand Management**: Customers submit repair/part requests with photos, urgency, and approximate location.
+2. **Provider Matching**: Algorithmic decision engine ranks verified local garages, mechanics, and technicians.
+3. **Contact Privacy**: Contact numbers and street addresses remain protected until customer approval and connection fee verification.
+4. **Interactive Dashboard**: Custom views for Customers, Service Providers, and FIX-IT-FAST Administrators.
+5. **In-App Messaging & Reviews**: Direct coordination and verified ratings upon work completion.
 
 ---
 
-## 6. Intellectual Property & Ownership
-**FIX-IT-FAST CO. Ltd** & **GAMU Global Consultancy** — All rights reserved.
+## 5. Intellectual Property
+**FIX-IT-FAST CO. Ltd** (Owner) & **GAMU Global Consultancy** (Strategic Partner).  
+All rights reserved © 2026.

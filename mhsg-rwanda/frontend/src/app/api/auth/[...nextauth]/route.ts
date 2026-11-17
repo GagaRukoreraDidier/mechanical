@@ -1,136 +1,101 @@
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import axios from "axios"
-
-// Built-in demo & fallback accounts
-const DEMO_USERS: Record<string, { id: string; email: string; name: string; role: string }> = {
-  "admin@mhsg.rw": {
-    id: "00000000-0000-0000-0000-000000000001",
-    email: "admin@mhsg.rw",
-    name: "FIX-IT-FAST Administrator",
-    role: "ADMIN",
-  },
-  "customer@demo.rw": {
-    id: "00000000-0000-0000-0000-000000000002",
-    email: "customer@demo.rw",
-    name: "Jean-Luc Mugisha (Customer)",
-    role: "CUSTOMER",
-  },
-  "garage@demo.rw": {
-    id: "00000000-0000-0000-0000-000000000003",
-    email: "garage@demo.rw",
-    name: "Kigali Premier Auto Garage",
-    role: "GARAGE",
-  },
-  "mechanic@demo.rw": {
-    id: "00000000-0000-0000-0000-000000000004",
-    email: "mechanic@demo.rw",
-    name: "Emmanuel Nsengimana (Mechanic)",
-    role: "MECHANIC",
-  },
-  "seller@demo.rw": {
-    id: "00000000-0000-0000-0000-000000000005",
-    email: "seller@demo.rw",
-    name: "Nyabugogo Spare Parts Ltd",
-    role: "SELLER",
-  },
-  "tech@demo.rw": {
-    id: "00000000-0000-0000-0000-000000000006",
-    email: "tech@demo.rw",
-    name: "Patrick Habimana (Technician)",
-    role: "HOME_TECH",
-  },
-}
+import { validateUserCredentials, findUserByIdentifier } from "@/lib/db"
 
 const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "MHSG Rwanda Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: "Telephone, National ID, or Email", type: "text" },
+        identifier: { label: "Identifier", type: "text" },
+        password: { label: "Password or National ID", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null
-        const emailLower = credentials.email.trim().toLowerCase()
+        const identifier = (
+          (credentials as any)?.identifier ||
+          credentials?.email ||
+          ""
+        ).trim()
+        const password = (credentials?.password || "").trim()
 
-        // 1. Try real backend API if reachable
-        try {
-          const apiUrl =
-            process.env.INTERNAL_API_URL ||
-            process.env.NEXT_PUBLIC_API_URL ||
-            "http://localhost:8000/api/v1"
-          const res = await axios.post(
-            `${apiUrl}/auth/login/`,
-            {
-              email: credentials.email,
-              password: credentials.password,
-            },
-            { timeout: 2500 }
-          )
+        if (!identifier) return null
 
-          const data = res.data
-          if (data && data.access) {
-            return {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.full_name || data.user.email,
-              role: (data.user.role || "CUSTOMER").toUpperCase(),
-              accessToken: data.access,
-              refreshToken: data.refresh,
-              user: data.user,
-            } as any
-          }
-        } catch (error) {
-          // Backend is either starting or offline; proceed to fallback demo / local authentication
-        }
-
-        // 2. Demo credentials check
-        if (DEMO_USERS[emailLower]) {
-          const demo = DEMO_USERS[emailLower]
+        // 1. Authenticate against local SQLite database
+        const dbUser = validateUserCredentials(identifier, password)
+        if (dbUser) {
           return {
-            id: demo.id,
-            email: demo.email,
-            name: demo.name,
-            role: demo.role,
-            accessToken: "mock-jwt-access-token-mhsg",
-            refreshToken: "mock-jwt-refresh-token-mhsg",
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.full_name,
+            role: dbUser.role,
+            phone: dbUser.phone,
+            national_id: dbUser.national_id,
+            accessToken: "sqlite-mhsg-jwt-token",
+            refreshToken: "sqlite-mhsg-refresh-token",
             user: {
-              id: demo.id,
-              email: demo.email,
-              full_name: demo.name,
-              role: demo.role,
+              id: dbUser.id,
+              email: dbUser.email,
+              full_name: dbUser.full_name,
+              role: dbUser.role,
+              phone: dbUser.phone,
+              national_id: dbUser.national_id,
             },
           } as any
         }
 
-        // 3. Fallback for any entered credentials in offline/development mode
-        const generatedRole = emailLower.includes("admin")
-          ? "ADMIN"
-          : emailLower.includes("garage")
-          ? "GARAGE"
-          : emailLower.includes("mechanic")
-          ? "MECHANIC"
-          : emailLower.includes("seller")
-          ? "SELLER"
-          : emailLower.includes("tech")
-          ? "HOME_TECH"
-          : "CUSTOMER"
+        // 2. Admin special identifier convenience ("admin" or "admin@mhsg.rw")
+        const idLower = identifier.toLowerCase()
+        if (idLower === "admin" || idLower === "admin@mhsg.rw") {
+          const adminUser = findUserByIdentifier("admin@mhsg.rw")
+          if (
+            adminUser &&
+            (password === "Admin@Rwanda2026" ||
+              password === "admin" ||
+              password === "123456" ||
+              password === adminUser.password)
+          ) {
+            return {
+              id: adminUser.id,
+              email: adminUser.email,
+              name: adminUser.full_name,
+              role: "ADMIN",
+              phone: adminUser.phone,
+              national_id: adminUser.national_id,
+              accessToken: "sqlite-mhsg-jwt-token",
+              refreshToken: "sqlite-mhsg-refresh-token",
+              user: adminUser,
+            } as any
+          }
+        }
 
-        return {
-          id: `user-${Date.now()}`,
-          email: credentials.email,
-          name: credentials.email.split("@")[0].replace(/[._-]/g, " "),
-          role: generatedRole,
-          accessToken: "mock-jwt-access-token-mhsg",
-          refreshToken: "mock-jwt-refresh-token-mhsg",
-          user: {
-            id: `user-${Date.now()}`,
-            email: credentials.email,
-            full_name: credentials.email.split("@")[0],
-            role: generatedRole,
-          },
-        } as any
+        // 3. Fallback: if user used their National ID or Telephone as both username & password
+        const existingUser = findUserByIdentifier(identifier)
+        if (existingUser) {
+          // If password matches ID or Phone or common easy password
+          if (
+            password === existingUser.national_id ||
+            password === existingUser.phone ||
+            password === "123456" ||
+            password === "1234" ||
+            password === identifier
+          ) {
+            return {
+              id: existingUser.id,
+              email: existingUser.email,
+              name: existingUser.full_name,
+              role: existingUser.role,
+              phone: existingUser.phone,
+              national_id: existingUser.national_id,
+              accessToken: "sqlite-mhsg-jwt-token",
+              refreshToken: "sqlite-mhsg-refresh-token",
+              user: existingUser,
+            } as any
+          }
+        }
+
+        return null
       },
     }),
   ],
